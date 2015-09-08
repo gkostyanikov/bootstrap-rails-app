@@ -39,6 +39,15 @@ RUN cd postgis-2.1.3 && make install
 # ``postgres-9.3`` package when it was ``apt-get installed``
 USER postgres
 
+	# Adjust PostgreSQL configuration so that remote connections to the
+	# database are possible. 
+RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/9.4/main/pg_hba.conf
+RUN echo "listen_addresses='*'" >> /etc/postgresql/9.4/main/postgresql.conf
+RUN echo "shared_preload_libraries = 'pg_stat_statements'" >> /etc/postgresql/9.4/main/postgresql.conf
+RUN echo "pg_stat_statements.track = all" >> /etc/postgresql/9.4/main/postgresql.conf
+RUN echo "pg_stat_statements.max = 10000" >> /etc/postgresql/9.4/main/postgresql.conf
+RUN echo "track_activity_query_size = 2048" >> /etc/postgresql/9.4/main/postgresql.conf
+
 # Create a PostgreSQL role named ``docker`` with ``docker`` as the password and
 # then create a database `docker` owned by the ``docker`` role.
 # Note: here we use ``&&\`` to run commands one after the other - the ``\``
@@ -49,15 +58,17 @@ RUN  /etc/init.d/postgresql start &&\
 	 psql --command "CREATE EXTENSION postgis_topology;" &&\
 	 psql --command "CREATE EXTENSION fuzzystrmatch;" &&\
 	 psql --command "CREATE EXTENSION postgis_tiger_geocoder;" &&\
+	 psql --command "CREATE EXTENSION pg_stat_statements;" &&\
+	 psql --command "CREATE EXTENSION uuid-ossp;" &&\
 	 createdb -O docker docker
 
-	# Adjust PostgreSQL configuration so that remote connections to the
-	# database are possible. 
-RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/9.4/main/pg_hba.conf
 
-# And add ``listen_addresses`` to
-# ``/etc/postgresql/9.3/main/postgresql.conf``
-RUN echo "listen_addresses='*'" >> /etc/postgresql/9.4/main/postgresql.conf
+
+
+
+
+
+
 
 RUN /usr/lib/postgresql/9.4/bin/postgres -D\
 	/var/lib/postgresql/9.4/main -c\
